@@ -36,4 +36,4 @@ This repo serves as the orchestration layer for the SmartDoc Finder project, lin
 
 ### 1. Clone with Submodules:
 ```bash
-git clone --recurse-submodules https://github.com/your-org/smartdoc-finder.git
+git clone --recurse-submodules https://github.com/codejunkie1609/smartdoc-finder.git
