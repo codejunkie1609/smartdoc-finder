@@ -1,0 +1,9 @@
+[submodule "smartdoc-finder-backend"]
+	path = smartdoc-finder-backend
+	url = https://github.com/codejunkie1609/smartdoc-finder-backend
+[submodule "smartdoc-finder-frontend"]
+	path = smartdoc-finder-frontend
+	url = https://github.com/codejunkie1609/smartdoc-finder-frontend
+[submodule "smartdoc-finder-embedding"]
+	path = smartdoc-finder-embedding
+	url = https://github.com/codejunkie1609/smartdoc-finder-embedding
