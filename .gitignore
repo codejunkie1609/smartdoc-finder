@@ -1,0 +1,3 @@
+lucene-index/*
+faiss-index/*
+# Ignore all files in the lucene-index directory
