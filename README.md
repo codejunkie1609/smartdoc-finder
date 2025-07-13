@@ -59,30 +59,26 @@ Because this project uses Git submodules, you must use the `--recurse-submodules
 ```bash
 git clone --recurse-submodules https://github.com/<Your-Username>/smartdoc-finder.git
 cd smartdoc-finder
-2. Configure Your Environment
-Create a .env file in the project root by copying the .env.example file.
-The most important variable to set is USER_DATA_DIRECTORY, which should point to the folder on your local machine containing the documents you want to index.
+```
 
-3. Build and Run the Application
+### 2. Configure Your Environment
+
+Create a `.env` file in the project root by copying the `.env.example` file.  
+The most important variable to set is `USER_DATA_DIRECTORY`, which should point to the folder on your local machine containing the documents you want to index.
+
+### 3. Build and Run the Application
+
 This command will build all the service images and start the containers:
 
-bash
-Copy
-Edit
+```bash
 docker-compose up --build
-4. Download AI Models (First-Time Setup)
+```
+
+### 4. Download AI Models (First-Time Setup)
+
 The first time you run the application, the AI services need to download their models. This can take several minutes. You can monitor the progress by watching the logs.
 
-Ollama (Generator): The ollama service will automatically start downloading the model specified in its entrypoint.sh script (e.g., qwen2:0.5b).
-
-Embedding & Reranker: These services will download their models when they first start up.
+- **Ollama (Generator)**: The `ollama` service will automatically start downloading the model specified in its `entrypoint.sh` script (e.g., `qwen2:0.5b`).
+- **Embedding & Reranker**: These services will download their models when they first start up.
 
 The application will be ready to use once all services are running and the models are downloaded.
-
-yaml
-Copy
-Edit
-
----
-
-You can now save this as `README.md` in your GitHub repo root. Let me know if you want a version with collapsible sections, badges, or screenshots!
