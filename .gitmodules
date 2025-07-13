@@ -7,3 +7,12 @@
 [submodule "smartdoc-finder-embedding"]
 	path = smartdoc-finder-embedding
 	url = https://github.com/codejunkie1609/smartdoc-finder-embedding
+[submodule "smartdoc-finder-generator"]
+	path = smartdoc-finder-generator
+	url = https://github.com/codejunkie1609/smartdoc-finder-generator.git
+[submodule "smartdoc-finder-reranker"]
+	path = smartdoc-finder-reranker
+	url = https://github.com/codejunkie1609/smartdoc-finder-generator.git
+[submodule "smartdoc-finder-ollama"]
+	path = smartdoc-finder-ollama
+	url = https://github.com/codejunkie1609/smartdoc-finder-ollama.git

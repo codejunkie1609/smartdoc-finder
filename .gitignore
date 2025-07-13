@@ -2,4 +2,12 @@ lucene-index/*
 faiss-index/*
 scripts/temp_beir_corpus/*
 temp_beir_corpus/*
+ollama_data/*
+beir_data/*
+.vscode/*
+temp_beir_corpus/*
+scripts/beir_data/*
+
+
+
 # Ignore all files in the lucene-index directory
