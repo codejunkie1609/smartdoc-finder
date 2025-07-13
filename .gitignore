@@ -1,3 +1,5 @@
 lucene-index/*
 faiss-index/*
+scripts/temp_beir_corpus/*
+temp_beir_corpus/*
 # Ignore all files in the lucene-index directory

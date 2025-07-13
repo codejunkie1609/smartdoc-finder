@@ -1,13 +1,5 @@
-version: '3.8'
-
 # This configuration uses a .env file for sensitive data and user-specific paths.
-# Ensure you have a .env file in the same directory with the following variables:
-# USER_DATA_DIRECTORY=/path/to/your/documents
-# POSTGRES_DB=smartdoc
-# POSTGRES_USER=postgres
-# POSTGRES_PASSWORD=postgres
-# RABBITMQ_DEFAULT_USER=guest
-# RABBITMQ_DEFAULT_PASS=guest
+# Ensure you have a .env file in the same directory.
 
 services:
   # --- Frontend Web Interface (React/Next.js) ---
@@ -17,12 +9,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_BACKEND_URL: http://backend:8080
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:8080
     depends_on:
-      backend:
-        condition: service_started
+      - backend
 
-  # --- Backend API & Indexing Orchestrator (Java/Spring) ---
+  # --- Backend API & Orchestrator (Java/Spring) ---
   backend:
     build:
       context: ./smartdoc-finder-backend
@@ -32,64 +23,86 @@ services:
     environment:
       SPRING_DATASOURCE_URL: "jdbc:postgresql://db:5432/${POSTGRES_DB}"
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
-      SPRING_DATASource_PASSWORD: "${POSTGRES_PASSWORD}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
       INDEXING_SOURCE_PATH: "/host-documents"
       SPRING_RABBITMQ_HOST: "rabbitmq"
-      SPRING_APPLICATION_JSON: '{"embedding.service.url": "http://embedding-api:8000"}'
+      # ✅ CORRECTED: URLs now point to the internal container ports (8000)
+      SPRING_APPLICATION_JSON: '{"embedding.service.url": "http://embedding-api:8000", "generator.service.url": "http://generator:8000", "reranker.service.url": "http://reranker:8000"}'
     volumes:
-      # Use a bind mount to make the Lucene index visible in your project folder.
-      - ./lucene-index:/lucene-index
-      # Mount the user's data directory from the .env file.
+      - lucene_index:/lucene-index
       - ${USER_DATA_DIRECTORY}:/host-documents
     depends_on:
       db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      generator:
+        condition: service_started # Changed to started to avoid healthcheck issues
+      reranker:
+        condition: service_started # Changed to started to avoid healthcheck issues
 
   # --- Embedding API (Python/FastAPI) ---
   embedding-api:
     build:
       context: ./smartdoc-finder-embedding
     ports:
-      - "8000:8000"
+      - "8001:8000" # Changed host port to avoid conflict
     environment:
-      RABBITMQ_HOST: "rabbitmq"
+      - RABBITMQ_HOST=rabbitmq
     volumes:
-      # ✅ CORRECTED: Use a bind mount that matches the worker.
-      # Both services now share the same local './faiss-index' folder.
-      - ./faiss-index:/app/index
+      - faiss_index:/app/index
     command: uvicorn main:app --host 0.0.0.0 --port 8000
     depends_on:
-      rabbitmq:
-        condition: service_healthy
+      - rabbitmq
 
   # --- Embedding Worker (Python/FAISS) ---
   embedding-worker:
     build:
       context: ./smartdoc-finder-embedding
-    ports:
-      - "5678:5678" # Expose the debug port
     environment:
-      RABBITMQ_HOST: "rabbitmq"
+      - RABBITMQ_HOST=rabbitmq
     volumes:
-      # ✅ CORRECTED: Use a bind mount that matches the API.
-      # The worker writes to the same folder the API reads from.
-      - ./faiss-index:/app/index
+      - faiss_index:/app/index
     command: python -u build_faiss_index.py
     depends_on:
-      db:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      - rabbitmq
+
+  # --- Reranker Service (Python/FastAPI) ---
+  reranker:
+    build:
+      context: ./smartdoc-finder-reranker
+    ports:
+      - "9001:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+  # --- Generator Service (Python/FastAPI) ---
+  generator:
+    build:
+      context: ./smartdoc-finder-generator
+    ports:
+      - "9000:8000"
+      - "5679:5678"
+    command: python -m uvicorn main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - ollama
+
+  # --- Ollama LLM Service ---
+  ollama:
+    build:
+      context: ./smartdoc-finder-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
 
   # --- PostgreSQL Database ---
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: "${POSTGRES_DB}"
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
@@ -104,36 +117,20 @@ services:
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     environment:
-      RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER}"
-      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS}"
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
     ports:
-      - "5672:5672"   # For application connections
-      - "15672:15672" # For the Management UI
+      - "5672:5672"
+      - "15672:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - .ollama_data:/root/.ollama
-
-  generator:
-    build:
-      context: ./smartdoc-finder-generator
-    ports:
-      - "8001:8000"
-    depends_on:
-      - ollama
-  
-    
-
-# --- Define Named Volume for PostgreSQL Data ---
-# The index volumes are now bind mounts and do not need to be defined here.
+# --- Define Named Volumes for Data Persistence ---
 volumes:
   db_data:
+  lucene_index:
+  faiss_index:
   ollama_data:
